@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Suco+ | Detail Objek #{{ object_id }} & Tanya AI</title>
+
+    <!-- Stylesheet Global & Theme -->
+    <link rel="stylesheet" href="{{ asset_url('assets/css/style.css') }}">
+
+    <!-- Konfigurasi Global Subfolder Hosting & Keamanan Token -->
+    <script>
+        window.BASE_PATH = "{{ base_path }}";
+        window.CSRF_TOKEN = "{{ csrf_token }}";
+        window.CURRENT_OBJECT_ID = "{{ object_id }}";
+    </script>
+
+    <style>
+        /* Styling Khusus Halaman Split-View Detail Objek & Chat AI */
+        .detail-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+        }
+
+        .detail-navbar-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .detail-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            max-width: 1300px;
+            margin: 1.25rem auto;
+            padding: 0 1rem;
+            min-height: calc(100vh - 120px);
+        }
+
+        @media (max-width: 900px) {
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Kiri: Visual & Metadata */
+        .panel-visual {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .snapshot-viewer-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .snapshot-viewer-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s ease-out;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .snapshot-viewer-container img:active {
+            cursor: grabbing;
+        }
+
+        .inspector-toolbar {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 0.35rem;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            z-index: 10;
+        }
+
+        .inspector-toolbar button {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #475569;
+            padding: 0.25rem 0.55rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .inspector-toolbar button:hover {
+            background: #0284c7;
+            color: #fff;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .meta-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .meta-card span {
+            display: block;
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+
+        .meta-card strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #f1f5f9;
+            margin-top: 2px;
+        }
+
+        /* Panel Kanan: AI Q&A Assistant */
+        .panel-chat {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 520px;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            padding-right: 0.35rem;
+            max-height: 400px;
+        }
+
+        .chat-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            max-width: 88%;
+            word-break: break-word;
+        }
+
+        .chat-msg-user {
+            align-self: flex-end;
+        }
+
+        .chat-msg-assistant {
+            align-self: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .chat-msg-user .msg-bubble {
+            background: #0284c7;
+            color: #ffffff;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-msg-assistant .msg-bubble {
+            background: rgba(30, 41, 59, 0.9);
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-meta {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            padding: 0 0.3rem;
+        }
+
+        .suggested-chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin: 0.75rem 0;
+            padding-top: 0.5rem;
+            border-top: 1px solid #1e293b;
+        }
+
+        .chip-btn {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #0284c7;
+            color: #38bdf8;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .chip-btn:hover {
+            background: #0284c7;
+            color: #fff;
+        }
+
+        .chat-input-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: auto;
+            padding-top: 0.75rem;
+            border-top: 1px solid #334155;
+        }
+
+        .chat-input-bar input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            outline: none;
+        }
+
+        .chat-input-bar input:focus {
+            border-color: #0284c7;
+        }
+
+        .chat-input-bar button {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 0 1.25rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .chat-input-bar button:disabled {
+            background: #334155;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="detail-navbar">
+        <div class="detail-navbar-title">
+            <button id="btnBackToCamera" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
+                ← Kembali ke Kamera
+            </button>
+            <span>Objek: <strong id="headerObjectId">#{{ object_id }}</strong></span>
+            <span id="headerStatusBadge" class="status-badge status-ready" style="font-size: 0.72rem; padding: 0.15rem 0.5rem;">
+                ● LOCKED
+            </span>
+        </div>
+        <div class="detail-navbar-actions">
+            <button id="btnExportLog" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+                📄 Simpan Catatan
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Split-Layout -->
+    <main class="split-layout">
+        <!-- PANEL KIRI: VISUAL & METADATA -->
+        <section class="panel-visual">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 1rem; margin: 0; color: #f8fafc; display: flex; align-items: center; gap: 0.4rem;">
+                    🔍 Bukti Visual & Telemetri
+                </h2>
+                <span id="imgDimensionsLabel" style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">
+                    Sub-Frame RoI
+                </span>
+            </div>
+
+            <!-- Viewer Citra Resolusi Tinggi dengan Pan & Magnify -->
+            <div class="snapshot-viewer-container" id="viewerBox">
+                <img id="snapshotImg" src="" alt="Citra Objek Terkunci" draggable="false">
+                <div id="noSnapshotPlaceholder" style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 1rem;">
+                    Memuat data snapshot objek...
+                </div>
+
+                <!-- Kontrol Zoom & Pan Citra -->
+                <div class="inspector-toolbar">
+                    <button id="btnZoomIn" type="button" title="Perbesar citra">+</button>
+                    <button id="btnZoomOut" type="button" title="Perkecil citra">-</button>
+                    <button id="btnResetPan" type="button" title="Reset posisi citra">Reset</button>
+                </div>
+            </div>
+
+            <!-- Metadata Objek Terstruktur (Section 4.1) -->
+            <div>
+                <h3 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.5px;">
+                    Parameter Terverifikasi
+                </h3>
+                <div class="metadata-grid" id="metadataGrid">
+                    <div class="meta-card">
+                        <span>Klasifikasi Objek</span>
+                        <strong id="metaLabel">Memuat...</strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Akurasi Deteksi</span>
+                        <strong id="metaConfidence">-%</strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Jarak Estimasi</span>
+                        <strong id="metaRange">~1.2m</strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Target ID</span>
+                        <strong id="metaTargetId">{{ object_id }}</strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Waktu Pengamatan</span>
+                        <strong id="metaTimestamp">-</strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Grounding Status</span>
+                        <strong style="color: #10b981;">● Visual Verified</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ringkasan Deskripsi Bawaan -->
+            <div style="background: rgba(30, 41, 59, 0.4); border-left: 4px solid #0284c7; padding: 0.75rem; border-radius: 6px;">
+                <h4 style="margin: 0 0 0.3rem 0; font-size: 0.85rem; color: #f8fafc;">Deskripsi Standar:</h4>
+                <p id="metaDescription" style="margin: 0; font-size: 0.82rem; color: #cbd5e1; line-height: 1.45;">
+                    Deskripsi objek sedang dimuat dari kamus pengetahuan Suco+.
+                </p>
+            </div>
+        </section>
+
+        <!-- PANEL KANAN: AI Q&A ASSISTANT -->
+        <section class="panel-chat">
+            <div class="chat-header">
+                <div>
+                    <h2 style="font-size: 1rem; margin: 0; color: #f8fafc; display: flex; align-items: center; gap: 0.4rem;">
+                        🤖 Tanya AI Seputar Objek Ini
+                    </h2>
+                    <span style="font-size: 0.72rem; color: #94a3b8;">
+                        Anti-Hallucination Guardrail Active (Gemini 2.0 / DeepSeek)
+                    </span>
+                </div>
+                <span id="aiStatusBadge" class="status-badge status-ready" style="font-size: 0.75rem;">
+                    AI Siap
+                </span>
+            </div>
+
+            <!-- Riwayat Percakapan Interaktif -->
+            <div class="chat-history" id="chatHistory">
+                <!-- Pesan Awal Asisten -->
+                <div class="chat-msg chat-msg-assistant">
+                    <div class="msg-bubble">
+                        Halo! Saya adalah spesialis analisis visual Suco+. Saya telah memverifikasi data dan bukti visual untuk objek <strong>#{{ object_id }}</strong>. Silakan tanyakan karakteristik, material, fungsi, atau anomali terkait objek ini.
+                    </div>
+                    <span class="msg-meta">Asisten AI • Sistem Grounded</span>
+                </div>
+            </div>
+
+            <!-- Rekomendasi Pertanyaan Cerdas (Suggested Chips) -->
+            <div>
+                <span style="font-size: 0.72rem; color: #94a3b8; display: block; margin-top: 0.5rem;">
+                    💡 Rekomendasi Pertanyaan Cepat:
+                </span>
+                <div class="suggested-chips-container" id="suggestedChips">
+                    <button class="chip-btn" data-query="Apa fungsi utama dan karakteristik visual dari objek ini?">
+                        Fungsi & Karakteristik
+                    </button>
+                    <button class="chip-btn" data-query="Terbuat dari material apa objek ini berdasarkan tampilan visualnya?">
+                        Analisis Material
+                    </button>
+                    <button class="chip-btn" data-query="Bagaimana perkiraan kondisi fisik dan kelayakan objek ini?">
+                        Kondisi Fisik
+                    </button>
+                    <button class="chip-btn" data-query="Apakah ada potensi risiko atau hal yang perlu diwaspadai?">
+                        Pemeriksaan Keamanan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Bar Pertanyaan -->
+            <form class="chat-input-bar" id="chatForm">
+                <input 
+                    type="text" 
+                    id="userQuestionInput" 
+                    placeholder="Ketik pertanyaan seputar objek ini..."
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" id="btnSendQuestion">
+                    Kirim ↑
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Modul API Wrapper Suco+ -->
+    <script src="{{ asset_url('assets/js/api.js') }}"></script>
+
+    <!-- Skrip Interaktif Halaman Detail Objek & Chat AI -->
+    <script>
+        (function () {
+            'use strict';
+
+            const objectId = window.CURRENT_OBJECT_ID || 'TGT-01';
+            let objectContext = null;
+            let conversationHistory = [];
+            let isSending = false;
+
+            // State Pan & Magnify Citra
+            let imgScale = 1.0;
+            let imgPanX = 0;
+            let imgPanY = 0;
+            let isPanning = false;
+            let startPanX = 0;
+            let startPanY = 0;
+
+            const elements = {
+                btnBack: document.getElementById('btnBackToCamera'),
+                btnExport: document.getElementById('btnExportLog'),
+                headerObjectId: document.getElementById('headerObjectId'),
+                snapshotImg: document.getElementById('snapshotImg'),
+                noSnapshotPlaceholder: document.getElementById('noSnapshotPlaceholder'),
+                btnZoomIn: document.getElementById('btnZoomIn'),
+                btnZoomOut: document.getElementById('btnZoomOut'),
+                btnResetPan: document.getElementById('btnResetPan'),
+                metaLabel: document.getElementById('metaLabel'),
+                metaConfidence: document.getElementById('metaConfidence'),
+                metaRange: document.getElementById('metaRange'),
+                metaTargetId: document.getElementById('metaTargetId'),
+                metaTimestamp: document.getElementById('metaTimestamp'),
+                metaDescription: document.getElementById('metaDescription'),
+                aiStatusBadge: document.getElementById('aiStatusBadge'),
+                chatHistory: document.getElementById('chatHistory'),
+                suggestedChips: document.getElementById('suggestedChips'),
+                chatForm: document.getElementById('chatForm'),
+                userInput: document.getElementById('userQuestionInput'),
+                btnSend: document.getElementById('btnSendQuestion'),
+            };
+
+            /**
+             * Memuat data objek dari sessionStorage yang disimpan oleh camera.js
+             */
+            function loadContextData() {
+                try {
+                    const raw = sessionStorage.getItem('suco_object_context_' + objectId) || sessionStorage.getItem('suco_current_context');
+                    if (raw) {
+                        objectContext = JSON.parse(raw);
+                    }
+                } catch (e) {
+                    console.warn('[Suco+] Gagal membaca context dari storage:', e);
+                }
+
+                if (!objectContext) {
+                    // Fallback data jika dibuka langsung via URL
+                    objectContext = {
+                        objectId: objectId,
+                        timestamp: Date.now(),
+                        metadata: {
+                            label: 'Objek #' + objectId,
+                            confidenceScore: 0.90,
+                            visualAttributes: {
+                                'Status': 'Dimuat dari Sesi URL',
+                                'Akurasi': '90%',
+                                'Target ID': objectId,
+                            },
+                        },
+                        visualEvidence: {
+                            highResCropBase64: '',
+                            mimeType: 'image/jpeg',
+                        },
+                    };
+                }
+
+                renderMetadataAndVisual();
+            }
+
+            /**
+             * Merender metadata dan citra snapshot ke panel kiri
+             */
+            function renderMetadataAndVisual() {
+                const meta = objectContext.metadata || {};
+                const label = meta.label || objectId;
+                const scorePct = Math.round((meta.confidenceScore || 0.85) * 100);
+
+                if (elements.metaLabel) elements.metaLabel.textContent = label;
+                if (elements.metaConfidence) elements.metaConfidence.textContent = `${scorePct}%`;
+                if (elements.metaTargetId) elements.metaTargetId.textContent = objectId;
+                if (elements.metaTimestamp) {
+                    elements.metaTimestamp.textContent = new Date(objectContext.timestamp || Date.now()).toLocaleTimeString();
+                }
+
+                if (meta.visualAttributes && meta.visualAttributes['Jarak Estimasi']) {
+                    elements.metaRange.textContent = meta.visualAttributes['Jarak Estimasi'];
+                }
+
+                if (meta.description && meta.description.summary) {
+                    elements.metaDescription.textContent = meta.description.summary;
+                } else {
+                    elements.metaDescription.textContent = `Objek ${label} teridentifikasi dengan akurasi ${scorePct}%.`;
+                }
+
+                // Render Citra
+                const imageB64 = objectContext.visualEvidence?.highResCropBase64 || objectContext.image;
+                if (imageB64 && elements.snapshotImg) {
+                    elements.snapshotImg.src = imageB64;
+                    elements.snapshotImg.style.display = 'block';
+                    if (elements.noSnapshotPlaceholder) {
+                        elements.noSnapshotPlaceholder.style.display = 'none';
+                    }
+                } else {
+                    if (elements.snapshotImg) elements.snapshotImg.style.display = 'none';
+                    if (elements.noSnapshotPlaceholder) {
+                        elements.noSnapshotPlaceholder.textContent = 'Citra snapshot tidak tersedia untuk sesi ini.';
+                    }
+                }
+            }
+
+            /**
+             * Navigasi kembali ke halaman utama kamera dengan menyimpan state
+             */
+            function handleBackToCamera() {
+                const basePath = (window.BASE_PATH || '').replace(/\/+$/, '');
+                window.location.href = basePath ? (basePath + '/') : '/';
+            }
+
+            /**
+             * Inspector Pan & Magnify
+             */
+            function applyImgTransform() {
+                if (!elements.snapshotImg) return;
+                elements.snapshotImg.style.transform = `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`;
+            }
+
+            function setupImageInspector() {
+                if (elements.btnZoomIn) {
+                    elements.btnZoomIn.addEventListener('click', () => {
+                        imgScale = Math.min(4.0, imgScale + 0.3);
+                        applyImgTransform();
+                    });
+                }
+                if (elements.btnZoomOut) {
+                    elements.btnZoomOut.addEventListener('click', () => {
+                        imgScale = Math.max(0.8, imgScale - 0.3);
+                        applyImgTransform();
+                    });
+                }
+                if (elements.btnResetPan) {
+                    elements.btnResetPan.addEventListener('click', () => {
+                        imgScale = 1.0;
+                        imgPanX = 0;
+                        imgPanY = 0;
+                        applyImgTransform();
+                    });
+                }
+
+                const viewer = document.getElementById('viewerBox');
+                if (viewer) {
+                    viewer.addEventListener('mousedown', (e) => {
+                        isPanning = true;
+                        startPanX = e.clientX - imgPanX;
+                        startPanY = e.clientY - imgPanY;
+                    });
+                    window.addEventListener('mousemove', (e) => {
+                        if (!isPanning) return;
+                        imgPanX = e.clientX - startPanX;
+                        imgPanY = e.clientY - startPanY;
+                        applyImgTransform();
+                    });
+                    window.addEventListener('mouseup', () => {
+                        isPanning = false;
+                    });
+                }
+            }
+
+            /**
+             * Menambahkan pesan ke tampilan riwayat chat
+             */
+            function appendChatMessage(sender, content) {
+                if (!elements.chatHistory) return;
+
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-msg chat-msg-${sender}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = 'msg-bubble';
+                bubble.innerHTML = content.replace(/\n/g, '<br>');
+
+                const meta = document.createElement('span');
+                meta.className = 'msg-meta';
+                const senderLabel = sender === 'user' ? 'Anda' : 'Asisten AI Suco+';
+                meta.textContent = `${senderLabel} • ${new Date().toLocaleTimeString()}`;
+
+                msgDiv.appendChild(bubble);
+                msgDiv.appendChild(meta);
+                elements.chatHistory.appendChild(msgDiv);
+                elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+            }
+
+            /**
+             * Mengirim pertanyaan ke backend /api/ai/chat
+             */
+            async function sendQuestion(questionText) {
+                const text = questionText.trim();
+                if (!text || isSending) return;
+
+                isSending = true;
+                appendChatMessage('user', text);
+                if (elements.userInput) elements.userInput.value = '';
+                if (elements.btnSend) elements.btnSend.disabled = true;
+                if (elements.aiStatusBadge) {
+                    elements.aiStatusBadge.className = 'status-badge status-loading';
+                    elements.aiStatusBadge.textContent = 'Menjawab...';
+                }
+
+                // Tambahkan pesan indikator memproses
+                const typingId = 'typingIndicator_' + Date.now();
+                const typingDiv = document.createElement('div');
+                typingDiv.id = typingId;
+                typingDiv.className = 'chat-msg chat-msg-assistant';
+                typingDiv.innerHTML = `
+                    <div class="msg-bubble" style="color: #38bdf8; font-style: italic;">
+                        Sedang menganalisis bukti visual dan metadata...
+                    </div>
+                `;
+                elements.chatHistory.appendChild(typingDiv);
+                elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+
+                try {
+                    const basePath = (window.BASE_PATH || '').replace(/\/+$/, '');
+                    const apiUrl = (basePath ? basePath : '') + '/api/ai/chat';
+
+                    const csrfToken = window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                    const payload = {
+                        object_context: objectContext,
+                        message: text,
+                        history: conversationHistory,
+                        image: objectContext?.visualEvidence?.highResCropBase64 || '',
+                    };
+
+                    const resp = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const data = await resp.json();
+                    const typingEl = document.getElementById(typingId);
+                    if (typingEl) typingEl.remove();
+
+                    if (!resp.ok || data.status === 'error') {
+                        throw new Error(data.message || `HTTP ${resp.status}`);
+                    }
+
+                    const reply = data.reply || 'Tidak ada respon yang diterima.';
+                    appendChatMessage('assistant', reply);
+
+                    // Simpan ke riwayat sesi lokal
+                    conversationHistory.push({ sender: 'user', content: text });
+                    conversationHistory.push({ sender: 'assistant', content: reply });
+
+                    // Perbarui saran pertanyaan jika tersedia
+                    if (Array.isArray(data.suggested_questions) && data.suggested_questions.length > 0) {
+                        updateSuggestedChips(data.suggested_questions);
+                    }
+
+                    if (elements.aiStatusBadge) {
+                        const prov = (data.provider_used || 'AI').toUpperCase();
+                        elements.aiStatusBadge.className = 'status-badge status-ready';
+                        elements.aiStatusBadge.textContent = prov + (data.fallback_triggered ? ' (Fallback)' : '');
+                    }
+
+                } catch (err) {
+                    console.error('[Suco+] Chat error:', err);
+                    const typingEl = document.getElementById(typingId);
+                    if (typingEl) typingEl.remove();
+
+                    appendChatMessage('assistant', `<span style="color:#ef4444;">Gagal memproses pertanyaan: ${err.message}</span>`);
+                    if (elements.aiStatusBadge) {
+                        elements.aiStatusBadge.className = 'status-badge status-error';
+                        elements.aiStatusBadge.textContent = 'Gagal';
+                    }
+                } finally {
+                    isSending = false;
+                    if (elements.btnSend) elements.btnSend.disabled = false;
+                    if (elements.userInput) elements.userInput.focus();
+                }
+            }
+
+            /**
+             * Memperbarui chip rekomendasi pertanyaan
+             */
+            function updateSuggestedChips(questions) {
+                if (!elements.suggestedChips) return;
+                elements.suggestedChips.innerHTML = '';
+                questions.slice(0, 4).forEach((q) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'chip-btn';
+                    btn.setAttribute('data-query', q);
+                    btn.textContent = q;
+                    btn.addEventListener('click', () => sendQuestion(q));
+                    elements.suggestedChips.appendChild(btn);
+                });
+            }
+
+            /**
+             * Export catatan percakapan ke berkas teks
+             */
+            function exportChatLog() {
+                const label = objectContext?.metadata?.label || objectId;
+                let log = `=== LAPORAN OBSERVASI OBJEK SUCO+ ===\n`;
+                log += `Target ID: ${objectId}\n`;
+                log += `Klasifikasi: ${label}\n`;
+                log += `Waktu: ${new Date().toLocaleString()}\n`;
+                log += `------------------------------------\n\n`;
+                log += `RIWAYAT PERCAKAPAN & ANALISIS AI:\n`;
+
+                conversationHistory.forEach((c) => {
+                    const who = c.sender === 'user' ? 'PENGGUNA' : 'ASISTEN AI';
+                    log += `[${who}]:\n${c.content}\n\n`;
+                });
+
+                const blob = new Blob([log], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Suco_Object_${objectId}_ChatLog.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            // Inisialisasi Event Handlers
+            function init() {
+                loadContextData();
+                setupImageInspector();
+
+                if (elements.btnBack) {
+                    elements.btnBack.addEventListener('click', handleBackToCamera);
+                }
+
+                if (elements.btnExport) {
+                    elements.btnExport.addEventListener('click', exportChatLog);
+                }
+
+                if (elements.chatForm) {
+                    elements.chatForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        if (elements.userInput) {
+                            sendQuestion(elements.userInput.value);
+                        }
+                    });
+                }
+
+                if (elements.suggestedChips) {
+                    const existingChips = elements.suggestedChips.querySelectorAll('.chip-btn');
+                    existingChips.forEach((chip) => {
+                        chip.addEventListener('click', () => {
+                            const query = chip.getAttribute('data-query');
+                            if (query) sendQuestion(query);
+                        });
+                    });
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>

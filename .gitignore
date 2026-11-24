@@ -1,0 +1,29 @@
+# Environment & Rahasia
+.env
+.env.*
+!.env.example
+
+# Python Virtual Environment
+venv/
+.venv/
+env/
+
+# Python Bytecode & Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# File Runtime & Snapshot (Pertahankan .gitkeep)
+uploads/snapshots/*.jpg
+uploads/snapshots/*.jpeg
+uploads/snapshots/*.png
+tmp/*
+!tmp/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

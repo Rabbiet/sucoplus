@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Suco+ | Deteksi Objek Real-Time & AI Router</title>
+
+    <!-- Stylesheet dengan cache-busting dinamis -->
+    <link rel="stylesheet" href="{{ asset_url('assets/css/style.css') }}">
+
+    <!-- Konfigurasi Global Subfolder Hosting & Keamanan Token -->
+    <script>
+        window.BASE_PATH = "{{ base_path }}";
+        window.CSRF_TOKEN = "{{ csrf_token }}";
+    </script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <h1>Suco<span>+</span></h1>
+            <p>Deteksi Objek Real-Time di Browser (TensorFlow.js COCO-SSD & AI Router)</p>
+        </div>
+        <div id="statusBadge" class="status-badge status-idle">
+            Model belum dimuat
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="camera-card">
+            <!-- Stage Video Webcam & Canvas Overlay -->
+            <div class="camera-stage">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="overlay"></canvas>
+                <div id="cameraPlaceholder" class="camera-placeholder">
+                    <p>Kamera belum aktif. Klik <strong>Mulai Kamera</strong> untuk memulai streaming deteksi.</p>
+                </div>
+            </div>
+
+            <!-- Toolbar Kontrol Kamera & Metrik Real-Time -->
+            <div class="controls-bar">
+                <div class="button-group">
+                    <button id="btnStart" class="btn btn-primary" type="button">
+                        Mulai Kamera
+                    </button>
+                    <button id="btnStop" class="btn btn-danger" type="button" disabled>
+                        Stop Kamera
+                    </button>
+                    <button id="btnSwitchCamera" class="btn btn-secondary" type="button" title="Ganti Kamera Depan / Belakang">
+                        Ganti Kamera
+                    </button>
+                    <button id="btnSnapshot" class="btn btn-secondary" type="button" disabled>
+                        Ambil Snapshot
+                    </button>
+                </div>
+
+                <div class="metrics">
+                    <span>Objek terdeteksi: <strong id="objectCount">0</strong></span>
+                    <span>FPS: <strong id="fpsCounter">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Panel Analisis Visual AI Router (Gemini & DeepSeek) -->
+            <div class="ai-section">
+                <div class="ai-section-header">
+                    <h2>Analisis Visual AI (Auto-Fallback Router)</h2>
+                    <p>Kirim hasil deteksi COCO-SSD dan frame snapshot ke Gemini & DeepSeek.</p>
+                </div>
+
+                <div class="ai-form-group">
+                    <input 
+                        type="text" 
+                        id="aiPrompt" 
+                        class="ai-input" 
+                        placeholder="Instruksi tambahan untuk AI (opsional, contoh: Analisis potensi bahaya objek ini)..."
+                        autocomplete="off"
+                    >
+                    <button id="btnAnalyzeAI" class="btn btn-ai" type="button" disabled>
+                        Analisis dengan AI
+                    </button>
+                </div>
+
+                <!-- Box Tampilan Hasil Analisis AI -->
+                <div id="aiResultBox" class="ai-result-box hidden">
+                    <div class="ai-result-header">
+                        <span class="ai-result-title">Hasil Analisis Visual</span>
+                        <span id="aiProviderBadge" class="status-badge status-idle">Menunggu</span>
+                    </div>
+                    <div id="aiResultText" class="ai-result-text">
+                        Hasil analisis dari AI Router akan ditampilkan di sini...
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- TensorFlow.js & COCO-SSD via CDN (Eksekusi 100% di Browser Client) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+    <!-- Modul API Wrapper Suco+ (Base Path, CSRF & Fetch Helper) -->
+    <script src="{{ asset_url('assets/js/api.js') }}"></script>
+
+    <!-- Modul Kamera & Deteksi Objek Real-Time -->
+    <script src="{{ asset_url('assets/js/camera.js') }}"></script>
+</body>
+</html>
