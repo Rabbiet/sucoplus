@@ -213,7 +213,7 @@ Aplikasi ini dikembangkan sebagai karya inovasi digital oleh:
    * **Asal Sekolah:** SMAN 2 Kota Blitar  
    * **Peran:** Lead Developer, Edge AI & MTT Radar Engineer, Backend Architecture, cPanel Deployment.
 
-2. **-**  
+2. **Dian Setiowati**  
    * **Kelas:** XI.A  
    * **Asal Sekolah:** SMAN 2 Kota Blitar  
    * **Peran:** UI/UX Co-Designer, Quality Assurance & Mobile Hardware Field Testing.
